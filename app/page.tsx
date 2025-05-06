@@ -10,7 +10,7 @@ import { ProfileScreen } from "@/components/profile-screen"
 import { MobileNavbar } from "@/components/mobile-navbar"
 import { useAuth } from "@/hooks/use-auth"
 import { useRouter, useSearchParams } from "next/navigation"
-import { useEffect, useState } from "react"
+import { useEffect, useState, Suspense } from "react"
 
 function SplashScreen() {
   return (
@@ -31,9 +31,7 @@ function SplashScreen() {
   );
 }
 
-export default function Home() {
-  const { user, loading } = useAuth();
-  const router = useRouter();
+function HomeWithSearchParams({ user, loading, router }: { user: any, loading: boolean, router: any }) {
   const searchParams = useSearchParams();
   const initialTab = searchParams.get("tab") || "home";
   const [tab, setTab] = useState(initialTab);
@@ -72,5 +70,16 @@ export default function Home() {
         </Tabs>
       </div>
     </main>
-  )
+  );
+}
+
+export default function Home() {
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  return (
+    <Suspense fallback={<SplashScreen />}>
+      <HomeWithSearchParams user={user} loading={loading} router={router} />
+    </Suspense>
+  );
 }
