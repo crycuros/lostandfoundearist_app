@@ -13,6 +13,7 @@ import { LogOut } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
 import { db } from "@/lib/firebase"
 import { doc, getDoc, setDoc } from "firebase/firestore"
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 
 const profileFormSchema = z.object({
   name: z.string().min(2, {
@@ -35,6 +36,7 @@ export function ProfileScreen() {
   const [profileImage, setProfileImage] = useState<string | null>(null)
   const [profileImageFile, setProfileImageFile] = useState<File | null>(null)
   const [profileImagePreview, setProfileImagePreview] = useState<string | null>(null)
+  const [alert, setAlert] = useState<{ open: boolean, message: string }>({ open: false, message: "" })
 
   const form = useForm<z.infer<typeof profileFormSchema>>({
     resolver: zodResolver(profileFormSchema),
@@ -110,9 +112,9 @@ export function ProfileScreen() {
       setProfileImage(url);
       setProfileImageFile(null);
       setProfileImagePreview(null);
-      alert("Profile picture updated!");
+      setAlert({ open: true, message: "Profile picture updated!" });
     } catch (err) {
-      alert("Failed to upload profile picture.");
+      setAlert({ open: true, message: "Failed to upload profile picture." });
     }
   }
 
@@ -120,7 +122,7 @@ export function ProfileScreen() {
     if (!user) return;
     await setDoc(doc(db, "users", user.uid), values);
     setProfileLocked(true);
-    alert("Profile updated successfully!");
+    setAlert({ open: true, message: "Profile updated successfully!" });
   }
 
   const name = form.watch("name") || "John Doe";
@@ -201,11 +203,10 @@ export function ProfileScreen() {
   }
 
   return (
-    <div className="space-y-6 pt-4 pb-16">
-      <div className="flex items-center justify-between">
+    <div className="w-full min-h-screen flex flex-col items-center justify-start pt-4 pb-16 bg-background">
+      <div className="flex items-center justify-between w-full max-w-2xl px-4">
         <h1 className="text-2xl font-bold">Profile</h1>
       </div>
-
       <div className="flex flex-col items-center justify-center mb-6">
         <Avatar className="h-24 w-24 mb-4">
           {profileImage ? (
@@ -248,58 +249,58 @@ export function ProfileScreen() {
         <h2 className="text-xl font-semibold">{name}</h2>
         <p className="text-muted-foreground">Student</p>
       </div>
+      <div className="w-full max-w-md px-4">
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Full Name</FormLabel>
+                  <FormControl>
+                    <Input {...field} disabled={profileLocked} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <FormField
-            control={form.control}
-            name="name"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Full Name</FormLabel>
-                <FormControl>
-                  <Input {...field} disabled={profileLocked} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-          <FormField
-            control={form.control}
-            name="email"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Email</FormLabel>
-                <FormControl>
-                  <Input {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+            <FormField
+              control={form.control}
+              name="studentId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Student ID</FormLabel>
+                  <FormControl>
+                    <Input {...field} disabled={profileLocked} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-          <FormField
-            control={form.control}
-            name="studentId"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Student ID</FormLabel>
-                <FormControl>
-                  <Input {...field} disabled={profileLocked} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <Button type="submit" className="w-full">
-            Save Changes
-          </Button>
-        </form>
-      </Form>
-
-      <div className="pt-6 border-t">
+            <Button type="submit" className="w-full">
+              Save Changes
+            </Button>
+          </form>
+        </Form>
+      </div>
+      <div className="pt-6 border-t w-full max-w-md px-4">
         <Button
           variant="outline"
           className="w-full flex items-center justify-center gap-2"
@@ -309,6 +310,12 @@ export function ProfileScreen() {
           Sign Out
         </Button>
       </div>
+      <Dialog open={alert.open} onOpenChange={open => setAlert(a => ({ ...a, open }))}>
+        <DialogContent>
+          <DialogTitle>Notice</DialogTitle>
+          <p>{alert.message}</p>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

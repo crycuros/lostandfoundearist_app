@@ -11,6 +11,7 @@ import { useAuth } from "@/hooks/use-auth"
 import { db } from "@/lib/firebase"
 import { collection, query, where, getDocs, addDoc, serverTimestamp, doc, deleteDoc, updateDoc } from "firebase/firestore"
 import { useRouter } from "next/navigation"
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 
 interface ItemCardProps {
   item: Item
@@ -29,6 +30,8 @@ export function ItemCard({ item, isOwner = false }: ItemCardProps) {
     location: item.location,
     date: item.date,
   });
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [alert, setAlert] = useState<{ open: boolean, message: string }>({ open: false, message: "" })
 
   const handleSave = () => {
     setIsSaved(!isSaved)
@@ -36,11 +39,11 @@ export function ItemCard({ item, isOwner = false }: ItemCardProps) {
 
   const handleContact = async () => {
     if (!user) {
-      alert("You must be logged in to start a chat.")
+      setAlert({ open: true, message: "You must be logged in to start a chat." })
       return
     }
     if (user.uid === item.userId) {
-      alert("You cannot chat with yourself about your own item.")
+      setAlert({ open: true, message: "You cannot chat with yourself about your own item." })
       return
     }
     // Check if a chat already exists between these users
@@ -66,13 +69,12 @@ export function ItemCard({ item, isOwner = false }: ItemCardProps) {
 
   const handleDelete = async () => {
     if (!user || user.uid !== item.userId) {
-      alert("You can only delete your own items.");
+      setAlert({ open: true, message: "You can only delete your own items." })
       return;
     }
     if (confirm("Are you sure you want to delete this item?")) {
       await deleteDoc(doc(db, "items", item.id));
-      alert("Item deleted!");
-      // Optionally, refresh the list or page
+      setAlert({ open: true, message: "Item deleted!" })
       window.location.reload();
     }
   }
@@ -88,7 +90,7 @@ export function ItemCard({ item, isOwner = false }: ItemCardProps) {
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await updateDoc(doc(db, "items", item.id), editValues);
-    alert("Item updated!");
+    setAlert({ open: true, message: "Item updated!" })
     setEditing(false);
     window.location.reload();
   };
@@ -122,7 +124,8 @@ export function ItemCard({ item, isOwner = false }: ItemCardProps) {
             <img
               src={item.imageUrl || "/placeholder.svg"}
               alt={item.title}
-              className="h-full w-full object-cover rounded-t-lg"
+              className="h-full w-full object-cover rounded-t-lg cursor-pointer"
+              onClick={() => setPreviewImage(item.imageUrl || null)}
             />
             <Badge className={`absolute top-2 right-2 ${item.type === "lost" ? "bg-red-500" : "bg-green-500"}`}>
               {item.type === "lost" ? "Lost" : "Found"}
@@ -180,6 +183,20 @@ export function ItemCard({ item, isOwner = false }: ItemCardProps) {
           </>
         )}
       </CardFooter>
+
+      {previewImage && (
+        <Dialog open={!!previewImage} onOpenChange={() => setPreviewImage(null)}>
+          <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-80 z-50">
+            <img src={previewImage} alt="preview" className="max-h-[80vh] max-w-[90vw] rounded shadow-lg" />
+          </div>
+        </Dialog>
+      )}
+      <Dialog open={alert.open} onOpenChange={open => setAlert(prev => ({ ...prev, open }))}>
+        <DialogContent>
+          <DialogTitle>Notice</DialogTitle>
+          <p>{alert.message}</p>
+        </DialogContent>
+      </Dialog>
     </Card>
   )
 }

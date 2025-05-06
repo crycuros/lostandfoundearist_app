@@ -11,7 +11,7 @@ import { db } from "@/lib/firebase"
 import { collection, query, where, getDocs, addDoc, orderBy, serverTimestamp, onSnapshot, deleteDoc, doc as firestoreDoc } from "firebase/firestore"
 import { useAuth } from "@/hooks/use-auth"
 import { useSearchParams } from "next/navigation"
-import { Dialog } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 
 export function ChatScreen() {
   const { user } = useAuth()
@@ -24,6 +24,7 @@ export function ChatScreen() {
   const [previewImage, setPreviewImage] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const searchParams = useSearchParams()
+  const [alert, setAlert] = useState<{ open: boolean, message: string }>({ open: false, message: "" })
 
   useEffect(() => {
     if (!user) return
@@ -77,7 +78,7 @@ export function ChatScreen() {
     }
   }
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
       setImageFile(file)
@@ -86,6 +87,24 @@ export function ChatScreen() {
         setImagePreview(reader.result as string)
       }
       reader.readAsDataURL(file)
+      try {
+        let imageUrl = ""
+        if (imageFile) {
+          imageUrl = await uploadToImgbb(imageFile)
+        }
+        await addDoc(collection(db, "chats", selectedChat, "messages"), {
+          chatId: selectedChat,
+          senderId: user.uid,
+          text: newMessage,
+          imageUrl,
+          timestamp: serverTimestamp(),
+        })
+        setNewMessage("")
+        setImageFile(null)
+        setImagePreview(null)
+      } catch (err) {
+        setAlert({ open: true, message: "Failed to upload image. Please try again." })
+      }
     }
   }
 
@@ -282,6 +301,13 @@ export function ChatScreen() {
           </div>
         </Dialog>
       )}
+
+      <Dialog open={alert.open} onOpenChange={open => setAlert(prev => ({ ...prev, open }))}>
+        <DialogContent>
+          <DialogTitle>Notice</DialogTitle>
+          <p>{alert.message}</p>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

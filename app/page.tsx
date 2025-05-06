@@ -9,6 +9,8 @@ import { ChatScreen } from "@/components/chat-screen"
 import { ProfileScreen } from "@/components/profile-screen"
 import { MobileNavbar } from "@/components/mobile-navbar"
 import { useAuth } from "@/hooks/use-auth"
+import { useRouter, useSearchParams } from "next/navigation"
+import { useEffect, useState } from "react"
 
 function SplashScreen() {
   return (
@@ -31,14 +33,25 @@ function SplashScreen() {
 
 export default function Home() {
   const { user, loading } = useAuth();
-  if (loading) return <SplashScreen />;
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialTab = searchParams.get("tab") || "home";
+  const [tab, setTab] = useState(initialTab);
+
+  useEffect(() => {
+    // Update the URL when the tab changes
+    router.replace(`/?tab=${tab}`, { scroll: false });
+  }, [tab, router]);
+
+  if (loading) return null;
   if (!user) return <ProfileScreen />;
+
   return (
     <main className="flex min-h-screen flex-col items-center">
       <div className="container flex flex-col max-w-md mx-auto pb-16">
-        <Tabs defaultValue="home" className="w-full">
+        <Tabs value={tab} onValueChange={setTab} className="w-full">
           <TabsContent value="home">
-            <HomeScreen />
+            <HomeScreen setTab={setTab} />
           </TabsContent>
           <TabsContent value="browse">
             <BrowseItems />

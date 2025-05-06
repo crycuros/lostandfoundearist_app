@@ -17,6 +17,7 @@ import { db, storage } from "@/lib/firebase"
 import { collection, addDoc, Timestamp } from "firebase/firestore"
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
 import { useAuth } from "@/hooks/use-auth"
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 
 const formSchema = z.object({
   type: z.enum(["lost", "found"], {
@@ -44,6 +45,7 @@ export function ReportItem() {
   const [imageFile, setImageFile] = useState<File | null>(null)
   const router = useRouter()
   const { user } = useAuth()
+  const [alert, setAlert] = useState<{ open: boolean, message: string }>({ open: false, message: "" })
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -75,7 +77,7 @@ export function ReportItem() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!user) {
-      alert("You must be logged in to report an item.")
+      setAlert({ open: true, message: "You must be logged in to report an item." })
       return
     }
     let imageUrl = ""
@@ -84,8 +86,7 @@ export function ReportItem() {
         imageUrl = await uploadToImgbb(imageFile)
       }
     } catch (err) {
-      console.error("Image upload error:", err)
-      alert("Failed to upload image. Please try again.")
+      setAlert({ open: true, message: "Failed to upload image. Please try again." })
       return
     }
     try {
@@ -96,13 +97,12 @@ export function ReportItem() {
         status: "open",
         createdAt: Timestamp.now(),
       })
-      alert("Item reported successfully!")
+      setAlert({ open: true, message: "Item reported successfully!" })
       form.reset()
       setImagePreview(null)
       setImageFile(null)
     } catch (err) {
-      console.error("Firestore add error:", err)
-      alert("Failed to report item. Please try again.")
+      setAlert({ open: true, message: "Failed to report item. Please try again." })
     }
   }
 
@@ -281,6 +281,13 @@ export function ReportItem() {
           </Button>
         </form>
       </Form>
+
+      <Dialog open={alert.open} onOpenChange={open => setAlert(a => ({ ...a, open }))}>
+        <DialogContent>
+          <DialogTitle>Notice</DialogTitle>
+          <p>{alert.message}</p>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -15,11 +15,14 @@ export function BrowseItems() {
   const [searchQuery, setSearchQuery] = useState("")
   const [categoryFilter, setCategoryFilter] = useState("all")
   const [typeFilter, setTypeFilter] = useState("all")
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const fetchItems = async () => {
+      setLoading(true)
       const querySnapshot = await getDocs(collection(db, "items"))
       setItems(querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Item)))
+      setLoading(false)
     }
     fetchItems()
   }, [])
@@ -79,9 +82,44 @@ export function BrowseItems() {
         </div>
       </div>
 
-      <div className="space-y-4">
-        {filteredItems.length > 0 ? (
-          filteredItems.map((item) => <ItemCard key={item.id} item={item} />)
+      <div className="space-y-4 min-h-[300px]">
+        {loading ? (
+          <div className="flex flex-col gap-4 animate-pulse">
+            {[1,2,3].map((i) => (
+              <div key={i} className="h-32 bg-gray-200 dark:bg-gray-800 rounded-lg w-full" />
+            ))}
+          </div>
+        ) : filteredItems.length > 0 ? (
+          <div className="space-y-4 animate-fade-in-scroll">
+            {filteredItems.map((item, idx) => (
+              <div
+                key={item.id}
+                style={{
+                  animation: `fadeInUp 0.5s ease ${(idx * 0.07).toFixed(2)}s both`
+                }}
+              >
+                <ItemCard item={item} />
+              </div>
+            ))}
+            <style>{`
+              @keyframes fadeInUp {
+                from {
+                  opacity: 0;
+                  transform: translateY(30px);
+                }
+                to {
+                  opacity: 1;
+                  transform: translateY(0);
+                }
+              }
+              .animate-fade-in-scroll > div {
+                opacity: 0;
+                animation-name: fadeInUp;
+                animation-duration: 0.5s;
+                animation-fill-mode: both;
+              }
+            `}</style>
+          </div>
         ) : (
           <div className="text-center py-8 text-muted-foreground">No items found matching your criteria</div>
         )}
